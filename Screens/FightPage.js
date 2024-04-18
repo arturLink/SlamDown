@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, FlatList } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, FlatList, SafeAreaView } from 'react-native';
+//import { SafeAreaView } from 'react-native-safe-area-context';
 
 const FightPage = () => {
   const [randomWrestler, setRandomWrestler] = useState(null);
@@ -175,83 +176,85 @@ const FightPage = () => {
   ];
 
   return (
-    <View style={styles.container}>
-      <View style={styles.rowContainer}>
-        {randomWrestler && (
-          <View style={styles.wrestlerContainer}>
-            <Image
-              source={randomWrestler.Picture}
-              style={styles.image}
-            />
-            <View>
-              <Text>{randomWrestler.Name}</Text>
-              <Text>Attack: {randomWrestler.Damage}</Text>
-              <Text>Defence: {randomWrestler.Defence}</Text>
-              <Text>Health: {randomWrestler.Health}</Text>
+    
+      <View style={styles.container}>
+        <View style={styles.rowContainer}>
+          {randomWrestler && (
+            <View style={styles.wrestlerContainer}>
+              <Image
+                source={randomWrestler.Picture}
+                style={styles.image}
+              />
+              <View>
+                <Text>{randomWrestler.Name}</Text>
+                <Text>Attack: {randomWrestler.Damage}</Text>
+                <Text>Defence: {randomWrestler.Defence}</Text>
+                <Text>Health: {randomWrestler.Health}</Text>
+              </View>
+            </View>
+          )}
+          {!randomWrestler && <Text>Loading random wrestler...</Text>}
+        </View>
+        <View style={styles.rowContainer}>
+          {userSelectedWrestler && (
+            <View style={styles.wrestlerContainer}>
+              <Image
+                source={userSelectedWrestler.Picture}
+                style={styles.image}
+              />
+              <View>
+                <Text>{userSelectedWrestler.Name}</Text>
+                <Text>Attack: {userSelectedWrestler.Damage}</Text>
+                <Text>Defence: {userSelectedWrestler.Defence}</Text>
+                <Text>Health: {userSelectedWrestler.Health}</Text>
+              </View>
+            </View>
+          )}
+          {!userSelectedWrestler && (
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: '#28a745' }]}
+              onPress={() => setModalVisible(true)}>
+              <Text style={styles.buttonText}>Select Wrestler</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        <TouchableOpacity style={styles.button} onPress={determineWinner}>
+          <Text style={styles.buttonText}>Fight!</Text>
+        </TouchableOpacity>
+        {fightResult && (
+          <View style={styles.resultContainer}>
+            <Text style={styles.resultText}>{fightResult}</Text>
+            <TouchableOpacity style={styles.button} onPress={replay}>
+              <Text style={styles.buttonText}>Replay</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <FlatList
+                data={initialCardData}
+                keyExtractor={(item, index) => index.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity style={styles.modalItem} onPress={() => selectUserWrestler(item)}>
+                    <Text>{item.Name}</Text>
+                    <Image
+                      source={item.Picture}
+                      style={styles.modalItemImage}
+                    />
+                  </TouchableOpacity>
+                )}
+              />
             </View>
           </View>
-        )}
-        {!randomWrestler && <Text>Loading random wrestler...</Text>}
+        </Modal>
       </View>
-      <View style={styles.rowContainer}>
-        {userSelectedWrestler && (
-          <View style={styles.wrestlerContainer}>
-            <Image
-              source={userSelectedWrestler.Picture}
-              style={styles.image}
-            />
-            <View>
-              <Text>{userSelectedWrestler.Name}</Text>
-              <Text>Attack: {userSelectedWrestler.Damage}</Text>
-              <Text>Defence: {userSelectedWrestler.Defence}</Text>
-              <Text>Health: {userSelectedWrestler.Health}</Text>
-            </View>
-          </View>
-        )}
-        {!userSelectedWrestler && (
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: '#28a745' }]}
-            onPress={() => setModalVisible(true)}>
-            <Text style={styles.buttonText}>Select Wrestler</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-      <TouchableOpacity style={styles.button} onPress={determineWinner}>
-        <Text style={styles.buttonText}>Fight!</Text>
-      </TouchableOpacity>
-      {fightResult && (
-        <View style={styles.resultContainer}>
-          <Text style={styles.resultText}>{fightResult}</Text>
-          <TouchableOpacity style={styles.button} onPress={replay}>
-            <Text style={styles.buttonText}>Replay</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <FlatList
-              data={initialCardData}
-              keyExtractor={(item, index) => index.toString()}
-              renderItem={({ item }) => (
-                <TouchableOpacity style={styles.modalItem} onPress={() => selectUserWrestler(item)}>
-                  <Text>{item.Name}</Text>
-                  <Image
-                    source={item.Picture}
-                    style={styles.modalItemImage}
-                  />
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        </View>
-      </Modal>
-    </View>
+    
   );
 };
 
