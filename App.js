@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SafeAreaView } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -9,6 +9,8 @@ import RosterPage from './Screens/RosterPage';
 const Tab = createBottomTabNavigator();
 
 const App = () => {
+  const [roster, setRoster] = useState([]);
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <NavigationContainer>
