@@ -1,6 +1,5 @@
-// StorePage.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Image, FlatList } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const StorePage = () => {
@@ -45,23 +44,6 @@ const StorePage = () => {
     }
   };
 
-  const handleCardPress = (card) => {
-    setSelectedCard(card);
-    setModalVisible(true);
-  };
-
-  const handleBuy = async (card) => {
-    // Add card to roster
-    const newRoster = [...roster, card];
-    setRoster(newRoster);
-    saveRoster(newRoster);
-
-    // Remove card from store
-    const newStore = store.filter((item) => item !== card);
-    setStore(newStore);
-    saveStore(newStore);
-  };
-
   const saveStore = async (newStore) => {
     try {
       await AsyncStorage.setItem('store', JSON.stringify(newStore));
@@ -70,29 +52,47 @@ const StorePage = () => {
     }
   };
 
+  const handleCardPress = (card) => {
+    setSelectedCard(card);
+    setModalVisible(true);
+  };
+
+  const handleBuy = async (card) => {
+    const newRoster = [...roster, card];
+    setRoster(newRoster);
+    saveRoster(newRoster);
+
+    const newStore = store.filter((item) => item !== card);
+    setStore(newStore);
+    saveStore(newStore);
+  };
+
+  const renderWrestler = ({ item }) => (
+    <TouchableOpacity style={styles.cardContainer} onPress={() => handleCardPress(item)}>
+      <Image source={item.Picture} style={styles.cardImage} />
+      <Text>{item.Name}</Text>
+      <Text>Price: {item.Price}</Text>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
-      {store.map((card, index) => (
-        <TouchableOpacity key={index} style={styles.cardContainer} onPress={() => handleCardPress(card)}>
-          <Image
-            source={card.Picture}
-            style={styles.cardImage}
-          />
-          <Text>{card.Name}</Text>
-          <Text>Price: {card.Price}</Text>
-        </TouchableOpacity>
-      ))}
+      <FlatList
+        data={store}
+        keyExtractor={(item, index) => index.toString()}
+        renderItem={renderWrestler}
+        numColumns={2}
+        columnWrapperStyle={styles.rowContainer}
+      />
+
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalContainer}>
           {selectedCard && (
             <View style={styles.modalContent}>
-              <Image
-                source={selectedCard.Picture}
-                style={styles.modalImage}
-              />
+              <Image source={selectedCard.Picture} style={styles.modalImage} />
               <Text>Name: {selectedCard.Name}</Text>
               <Text>Damage: {selectedCard.Damage}</Text>
-              <Text>Defense: {selectedCard.Defence}</Text>
+              <Text>Defence: {selectedCard.Defence}</Text>
               <Text>Health: {selectedCard.Health}</Text>
               <TouchableOpacity style={styles.buyButton} onPress={() => handleBuy(selectedCard)}>
                 <Text style={styles.buyButtonText}>Buy</Text>
@@ -111,17 +111,22 @@ const StorePage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: 20,
     backgroundColor: '#fff',
+  },
+  rowContainer: {
+    justifyContent: 'space-around',
+    marginBottom: 20,
   },
   cardContainer: {
     alignItems: 'center',
-    marginBottom: 20,
+    backgroundColor: '#f8f8f8',
+    padding: 15,
+    borderRadius: 10,
   },
   cardImage: {
-    width: 200,
-    height: 200,
+    width: 100,
+    height: 100,
     resizeMode: 'contain',
   },
   modalContainer: {
@@ -134,20 +139,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     padding: 20,
     borderRadius: 10,
-    width: '80%',
     alignItems: 'center',
   },
   modalImage: {
     width: 150,
     height: 150,
     resizeMode: 'contain',
-    marginBottom: 10,
   },
   buyButton: {
     backgroundColor: 'blue',
     padding: 10,
     borderRadius: 5,
-    marginTop: 10,
   },
   buyButtonText: {
     color: 'white',
@@ -156,7 +158,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'red',
     padding: 10,
     borderRadius: 5,
-    marginTop: 10,
   },
   closeButtonText: {
     color: 'white',
