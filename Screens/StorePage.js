@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Image, FlatList } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getUserMoney, setUserMoney } from '../Utils/Money.js';
 
 const StorePage = () => {
   const [selectedCard, setSelectedCard] = useState(null);
+  const [userMoney, setUserMoneyState] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
+  const [warningModalVisible, setWarningModalVisible] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
   const [roster, setRoster] = useState([]);
   const [store, setStore] = useState([]);
 
@@ -12,7 +16,13 @@ const StorePage = () => {
     // Load roster and store data from AsyncStorage
     loadRoster();
     loadStore();
+    loadUserMoney();
   }, []);
+
+  const loadUserMoney = async () => {
+    const money = await getUserMoney();
+    setUserMoneyState(money);
+  };
 
   const loadRoster = async () => {
     try {
@@ -52,19 +62,57 @@ const StorePage = () => {
     }
   };
 
+  const addCardToRoster = async (card) => {
+    try {
+      // Retrieve the current roster from AsyncStorage
+      const jsonValue = await AsyncStorage.getItem('roster');
+      let roster = jsonValue ? JSON.parse(jsonValue) : [];
+  
+      // Check if the card already exists in the roster to avoid duplicates
+      const cardExists = roster.some((existingCard) => existingCard.Name === card.Name);
+  
+      if (!cardExists) {
+        // If card doesn't exist, add it to the roster
+        roster.push(card);
+  
+        // Update the roster in AsyncStorage
+        const updatedJsonValue = JSON.stringify(roster);
+        await AsyncStorage.setItem('roster', updatedJsonValue);
+  
+        console.log(`Card ${card.Name} added to roster.`);
+      } else {
+        console.log(`Card ${card.Name} already in roster.`);
+      }
+    } catch (error) {
+      console.error('Error adding card to roster:', error);
+    }
+  };
+
   const handleCardPress = (card) => {
     setSelectedCard(card);
     setModalVisible(true);
   };
 
   const handleBuy = async (card) => {
-    const newRoster = [...roster, card];
-    setRoster(newRoster);
-    saveRoster(newRoster);
+    const cardCost = card.Price; // Cost of the card
+    const currentMoney = await getUserMoney();
 
-    const newStore = store.filter((item) => item !== card);
-    setStore(newStore);
-    saveStore(newStore);
+    if (currentMoney >= cardCost) {
+      // User has enough money
+      await setUserMoney(currentMoney - cardCost);
+      setUserMoneyState(currentMoney - cardCost);
+      addCardToRoster(card);
+      const newRoster = [...roster, card];
+      const newStore = store.filter((item) => item !== card);
+      setRoster(newRoster);
+      saveRoster(newRoster);
+      setStore(newStore);
+      saveStore(newStore);
+    } else {
+      // Not enough money; set the warning message and show the modal
+      setModalMessage(`Not enough money to buy ${card.name}.`);
+      setWarningModalVisible(true);
+    }
   };
 
   const renderWrestler = ({ item }) => (
@@ -102,6 +150,26 @@ const StorePage = () => {
               </TouchableOpacity>
             </View>
           )}
+        </View>
+      </Modal>
+
+      {/* Modal for warning messages */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={warningModalVisible}
+        onRequestClose={() => setWarningModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text>{modalMessage}</Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setWarningModalVisible(false)}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
     </View>

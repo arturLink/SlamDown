@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, FlatList, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, FlatList, SafeAreaView, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { getUserMoney, setUserMoney } from '../Utils/Money.js';
 
 const FightPage = () => {
   const [randomWrestler, setRandomWrestler] = useState(null);
@@ -10,6 +11,9 @@ const FightPage = () => {
   const [fightResult, setFightResult] = useState(null);
   const [roster, setRoster] = useState([]);
   const [AllWrestlers, setAllWrestlers] = useState([]);
+  const [noCardsModalVisible, setNoCardsModalVisible] = useState(false);
+
+  const navigation = useNavigation(); // To navigate to other pages
 
   useEffect(() => {
     loadRoster();
@@ -27,16 +31,33 @@ const FightPage = () => {
       if (jsonValueR !== null) {
         const storedRoster = JSON.parse(jsonValueR);
         setRoster(storedRoster);
-        setRandomWrestler(getRandomWrestler(storedRoster));
+
+        if (storedRoster.length === 0) {
+          // If the user has no cards, give them a random one and open the modal
+          assignRandomCardToUser();
+          setNoCardsModalVisible(true);
+        }
+      } else {
+        assignRandomCardToUser(); // Assign a card if there's nothing in AsyncStorage
+        setNoCardsModalVisible(true);
       }
+
       const jsonValueW = await AsyncStorage.getItem('allWrestlers');
       if (jsonValueW !== null) {
         const storedWrestlers = JSON.parse(jsonValueW);
         setAllWrestlers(storedWrestlers);
-        setRandomWrestler(getRandomWrestler(storedWrestlers));
+        setRandomWrestler(getRandomWrestler(storedWrestlers)); // Choose a random wrestler to fight
       }
     } catch (error) {
-      console.error('Failed to load roster from AsyncStorage:', error);
+      console.error('Failed to load data from AsyncStorage:', error);
+    }
+  };
+
+  const assignRandomCardToUser = async () => {
+    const randomCard = getRandomWrestler(AllWrestlers);
+    if (randomCard) {
+      setRoster([randomCard]);
+      await AsyncStorage.setItem('roster', JSON.stringify([randomCard]));
     }
   };
 
@@ -50,27 +71,37 @@ const FightPage = () => {
     setModalVisible(false);
   };
 
-  const determineWinner = () => {
+  const determineWinner = async () => {
+    if (roster.length === 0) {
+      setNoCardsModalVisible(true);
+      return;
+    }
+
     if (!randomWrestler || !userSelectedWrestler) {
       setFightResult('Fight cannot proceed. Select wrestlers first.');
       return;
     }
+    const userMoney = await getUserMoney();
 
     const totalStats1 = randomWrestler.Damage + randomWrestler.Defence + randomWrestler.Health;
-    const totalStats2 = userSelectedWrestler.Damage + userSelectedWrestler.Defence + userSelectedWrestler.Health;
+    const totalStats2 = userSelectedWrestler.Damage + randomWrestler.Defence + userSelectedWrestler.Health;
     const probability1 = totalStats1 / (totalStats1 + totalStats2);
     const randomNumber = Math.random();
 
     if (randomNumber <= probability1) {
       setFightResult(randomWrestler.Name + ' wins!');
+      const additionalMoney = 50;
+      await setUserMoney(userMoney + additionalMoney);
     } else {
       setFightResult(userSelectedWrestler.Name + ' wins!');
+      const additionalMoney = 200;
+      await setUserMoney(userMoney + additionalMoney);
     }
   };
 
   const replay = () => {
-    setRandomWrestler(getRandomWrestler(AllWrestlers));
-    setUserSelectedWrestler(null);
+    setRandomWrestler(getRandomWrestler(AllWrestlers)); // New random wrestler for the fight
+    setUserSelectedWrestler(null); // Reset user-selected wrestler
     setFightResult(null);
   };
 
@@ -94,6 +125,7 @@ const FightPage = () => {
           )}
           {!randomWrestler && <Text>Loading random wrestler...</Text>}
         </View>
+        
         <View style={styles.rowContainer}>
           {userSelectedWrestler && (
             <View style={styles.wrestlerContainer}>
@@ -117,9 +149,14 @@ const FightPage = () => {
             </TouchableOpacity>
           )}
         </View>
-        <TouchableOpacity style={styles.button} onPress={determineWinner}>
+        
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: roster.length > 0 ? '#007bff' : 'gray' }]}
+          disabled={roster.length === 0}
+          onPress={determineWinner}>
           <Text style={styles.buttonText}>Fight!</Text>
         </TouchableOpacity>
+        
         {fightResult && (
           <View style={styles.resultContainer}>
             <Text style={styles.resultText}>{fightResult}</Text>
@@ -128,6 +165,7 @@ const FightPage = () => {
             </TouchableOpacity>
           </View>
         )}
+
         <Modal
           animationType="slide"
           transparent={true}
@@ -140,7 +178,9 @@ const FightPage = () => {
                 data={roster}
                 keyExtractor={(item, index) => index.toString()}
                 renderItem={({ item }) => (
-                  <TouchableOpacity style={styles.modalItem} onPress={() => selectUserWrestler(item)}>
+                  <TouchableOpacity
+                    style={styles.modalItem}
+                    onPress={() => selectUserWrestler(item)}>
                     <Text>{item.Name}</Text>
                     <Image
                       source={item.Picture}
@@ -152,6 +192,28 @@ const FightPage = () => {
             </View>
           </View>
         </Modal>
+
+        <Modal
+          visible={noCardsModalVisible}
+          animationType="slide"
+          transparent
+          onRequestClose={() => setNoCardsModalVisible(false)}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text>You need at least one card to fight.</Text>
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => {
+                  assignRandomCardToUser();
+                  setNoCardsModalVisible(false);
+                  navigation.navigate('Your Roster');
+                }}>
+                <Text style={styles.buttonText}>Get a Card</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
       </View>
     </SafeAreaView>
   );

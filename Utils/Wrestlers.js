@@ -1,4 +1,4 @@
-const initialCardData = [
+export const initialCardData = [
     {
       Name: 'Artur Arder',
       Damage: 75,
