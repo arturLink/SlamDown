@@ -8,10 +8,13 @@ const FightPage = () => {
   const [randomWrestler, setRandomWrestler] = useState(null);
   const [userSelectedWrestler, setUserSelectedWrestler] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [fightResultModalVisible, setFightResultModalVisible] = useState(false);
   const [fightResult, setFightResult] = useState(null);
+  const [fightOutcomeMessage, setFightOutcomeMessage] = useState('');
   const [roster, setRoster] = useState([]);
   const [AllWrestlers, setAllWrestlers] = useState([]);
   const [noCardsModalVisible, setNoCardsModalVisible] = useState(false);
+  const [moneyEarned, setMoneyEarned] = useState(0);
 
   const navigation = useNavigation(); // To navigate to other pages
 
@@ -30,16 +33,7 @@ const FightPage = () => {
       const jsonValueR = await AsyncStorage.getItem('roster');
       if (jsonValueR !== null) {
         const storedRoster = JSON.parse(jsonValueR);
-        setRoster(storedRoster);
-
-        if (storedRoster.length === 0) {
-          // If the user has no cards, give them a random one and open the modal
-          assignRandomCardToUser();
-          setNoCardsModalVisible(true);
-        }
-      } else {
-        assignRandomCardToUser(); // Assign a card if there's nothing in AsyncStorage
-        setNoCardsModalVisible(true);
+        setRoster(storedRoster); 
       }
 
       const jsonValueW = await AsyncStorage.getItem('allWrestlers');
@@ -57,8 +51,7 @@ const FightPage = () => {
     const randomCard = getRandomWrestler(AllWrestlers);
     if (randomCard) {
       setRoster([randomCard]);
-      await AsyncStorage.setItem('roster', JSON.stringify([randomCard]));
-      await AsyncStorage.removeItem('store', JSON.stringify([randomCard]));      
+      await AsyncStorage.setItem('roster', JSON.stringify([randomCard]));    
     }
   };
 
@@ -90,89 +83,100 @@ const FightPage = () => {
     const randomNumber = Math.random();
 
     if (randomNumber <= probability1) {
-      setFightResult(randomWrestler.Name + ' wins!');
+      setFightResult(randomWrestler);
+      setFightOutcomeMessage(`${randomWrestler.Name} Defeated you!`);
       const additionalMoney = 50;
       await setUserMoney(userMoney + additionalMoney);
+      setMoneyEarned(50);
+      setFightResultModalVisible(true);
     } else {
-      setFightResult(userSelectedWrestler.Name + ' wins!');
+      setFightResult(userSelectedWrestler);
+      setFightOutcomeMessage(`${userSelectedWrestler.Name} wins! Congratulations!`);
       const additionalMoney = 200;
       await setUserMoney(userMoney + additionalMoney);
+      setMoneyEarned(200);
+      setFightResultModalVisible(true);
     }
-  };
 
-  const replay = () => {
-    setRandomWrestler(getRandomWrestler(AllWrestlers)); // New random wrestler for the fight
-    setUserSelectedWrestler(null); // Reset user-selected wrestler
-    setFightResult(null);
+    setRandomWrestler(getRandomWrestler(AllWrestlers));
+    setUserSelectedWrestler(null);
+    // setFightResult(null);
   };
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={styles.container}>
+        {/* Wrestler Selection */}
         <View style={styles.rowContainer}>
-          {randomWrestler && (
+          {randomWrestler ? (
             <View style={styles.wrestlerContainer}>
               <Image
                 source={randomWrestler.Picture}
                 style={styles.image}
               />
               <View>
-                <Text>{randomWrestler.Name}</Text>
-                <Text>Attack: {randomWrestler.Damage}</Text>
-                <Text>Defence: {randomWrestler.Defence}</Text>
-                <Text>Health: {randomWrestler.Health}</Text>
+                <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 22, marginTop: 30 }}>{randomWrestler.Name}</Text>
+                <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 30, marginBottom: 12 }}> <Image style={styles.StatImage} source={require('../assets/Icons/battle.png')}/>  {randomWrestler.Damage}</Text>
+                <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 30, marginBottom: 12 }}> <Image style={styles.StatImage} source={require('../assets/Icons/shield.png')}/> {randomWrestler.Defence}</Text>
+                <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 30, marginBottom: 12 }}> <Image style={styles.StatImage} source={require('../assets/Icons/heart.png')}/> {randomWrestler.Health}</Text>
               </View>
             </View>
+          ) : (
+            <Text style={{ color: '#ffffff' }}>Loading random wrestler...</Text>
           )}
-          {!randomWrestler && <Text>Loading random wrestler...</Text>}
         </View>
         
+        {/* User Wrestler Selection */}
         <View style={styles.rowContainer}>
-          {userSelectedWrestler && (
+          {userSelectedWrestler ? (
             <View style={styles.wrestlerContainer}>
               <Image
                 source={userSelectedWrestler.Picture}
                 style={styles.image}
               />
               <View>
-                <Text>{userSelectedWrestler.Name}</Text>
-                <Text>Attack: {userSelectedWrestler.Damage}</Text>
-                <Text>Defence: {userSelectedWrestler.Defence}</Text>
-                <Text>Health: {userSelectedWrestler.Health}</Text>
+              <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 22, marginTop: 30 }}>{userSelectedWrestler.Name}</Text>
+                <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 30, marginBottom: 12 }}> <Image style={styles.StatImage} source={require('../assets/Icons/battle.png')}/>  {userSelectedWrestler.Damage}</Text>
+                <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 30, marginBottom: 12 }}> <Image style={styles.StatImage} source={require('../assets/Icons/shield.png')}/> {userSelectedWrestler.Defence}</Text>
+                <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 30, marginBottom: 12 }}> <Image style={styles.StatImage} source={require('../assets/Icons/heart.png')}/> {userSelectedWrestler.Health}</Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.wrestlerContainer}>
+              <Image
+                source={require('../assets/Icons/question-sign.png')}
+                style={styles.image}
+              />
+              <View>
+              <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 22, marginTop: 30 }}>Wrestler not selected</Text>
+                <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 30, marginBottom: 12 }}> <Image style={styles.StatImage} source={require('../assets/Icons/battle.png')}/>  ???</Text>
+                <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 30, marginBottom: 12 }}> <Image style={styles.StatImage} source={require('../assets/Icons/shield.png')}/> ???</Text>
+                <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 30, marginBottom: 12 }}> <Image style={styles.StatImage} source={require('../assets/Icons/heart.png')}/> ???</Text>
               </View>
             </View>
           )}
-          {!userSelectedWrestler && (
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: '#28a745' }]}
+        </View>
+        <TouchableOpacity
+              style={styles.buttonSelect} // Gray for button when no wrestler is selected
+              disabled={roster.length === 0}
               onPress={() => setModalVisible(true)}>
               <Text style={styles.buttonText}>Select Wrestler</Text>
             </TouchableOpacity>
-          )}
-        </View>
-        
+
+        {/* Fight Button */}
         <TouchableOpacity
-          style={[styles.button, { backgroundColor: roster.length > 0 ? '#007bff' : 'gray' }]}
+          style={[styles.button, { backgroundColor: roster.length > 0 ? '#ffc61a' : '#808080' }]}
           disabled={roster.length === 0}
           onPress={determineWinner}>
           <Text style={styles.buttonText}>Fight!</Text>
         </TouchableOpacity>
         
-        {fightResult && (
-          <View style={styles.resultContainer}>
-            <Text style={styles.resultText}>{fightResult}</Text>
-            <TouchableOpacity style={styles.button} onPress={replay}>
-              <Text style={styles.buttonText}>Replay</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
+        {/* Modal for Selecting Wrestlers */}
         <Modal
           animationType="slide"
-          transparent={true}
+          transparent
           visible={modalVisible}
-          onRequestClose={() => setModalVisible(false)}
-        >
+          onRequestClose={() => setModalVisible(false)}>
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
               <FlatList
@@ -182,7 +186,7 @@ const FightPage = () => {
                   <TouchableOpacity
                     style={styles.modalItem}
                     onPress={() => selectUserWrestler(item)}>
-                    <Text>{item.Name}</Text>
+                    <Text style={{ color: '#ffffff' }}>{item.Name}</Text>
                     <Image
                       source={item.Picture}
                       style={styles.modalItemImage}
@@ -194,6 +198,7 @@ const FightPage = () => {
           </View>
         </Modal>
 
+        {/* Modal for No Cards */}
         <Modal
           visible={noCardsModalVisible}
           animationType="slide"
@@ -201,7 +206,7 @@ const FightPage = () => {
           onRequestClose={() => setNoCardsModalVisible(false)}>
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
-              <Text>You need at least one card to fight.</Text>
+              <Text style={{ color: '#ffffff' }}>You need at least one card to fight.</Text>
               <TouchableOpacity
                 style={styles.button}
                 onPress={() => {
@@ -214,7 +219,32 @@ const FightPage = () => {
             </View>
           </View>
         </Modal>
-
+        {/* Fight Result Modal */}
+        <Modal
+          animationType="slide"
+          transparent
+          visible={fightResultModalVisible}
+          onRequestClose={() => setFightResultModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalMessage}>{fightOutcomeMessage}</Text>
+              <Text style={{ fontSize: 18, color: '#ffffff' }}>Money earned: {moneyEarned}$</Text>
+              {fightResult && (
+                <Image source={fightResult.Picture} style={styles.resultImage} />
+              )}
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => {
+                  setFightResultModalVisible(false);
+                  setFightOutcomeMessage(''); // Clear the message
+                }}
+              >
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -223,68 +253,99 @@ const FightPage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#303030', // Background color for the main container
+  },
+  resultImage: {
+    width: 150,
+    height: 150,
+    borderRadius: 10,
+    resizeMode: 'contain', // To ensure the image is displayed properly
+  },
+  modalMessage: {
+    fontSize: 18,
+    color: '#ffffff', // White text for the message
   },
   rowContainer: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    padding: 16,
   },
   wrestlerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 20,
   },
   image: {
-    width: 100,
-    height: 100,
+    marginTop: 50,
+    width: 200,
+    height: 200,
+    borderRadius: 10,
     resizeMode: 'contain',
-    marginRight: 20,
   },
   button: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#ffc61a', // Button color
     padding: 10,
-    borderRadius: 5,
-    marginBottom: 20,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  buttonSelect: {
+    backgroundColor: '#808080', // Button color
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 36,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 20,
+    color: '#ffffff', // White text on buttons
     fontWeight: 'bold',
+    textAlign: 'center',
+    fontSize: 18,
+  },
+  closeButton: {
+    backgroundColor: 'red',
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  closeButtonText: {
+    color: 'white',
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Translucent dark background for modals
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: '#808080', // Gray background for modal content
     padding: 20,
     borderRadius: 10,
-    width: '80%',
-    maxHeight: '80%',
+    alignItems: 'center',
   },
   modalItem: {
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
   },
   modalItemImage: {
-    width: 50,
-    height: 50,
+    width: 140,
+    height: 140,
+    borderRadius: 20,
     resizeMode: 'contain',
   },
   resultContainer: {
+    marginTop: 16,
     alignItems: 'center',
   },
   resultText: {
-    fontSize: 24,
-    marginBottom: 20,
+    fontSize: 18,
+    color: '#ffffff', // White text for result
   },
+  StatImage: {
+    width: 40,
+    height: 40,
+    marginRight: 10,
+    resizeMode: 'contain',
+  }
 });
 
 export default FightPage;
