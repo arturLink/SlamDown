@@ -58,6 +58,7 @@ const FightPage = () => {
     if (randomCard) {
       setRoster([randomCard]);
       await AsyncStorage.setItem('roster', JSON.stringify([randomCard]));
+      await AsyncStorage.removeItem('store', JSON.stringify([randomCard]));      
     }
   };
 

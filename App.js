@@ -8,23 +8,10 @@ import { getUserMoney, setUserMoney } from './Utils/Money.js';
 import FightPage from './Screens/FightPage';
 import StorePage from './Screens/StorePage';
 import RosterPage from './Screens/RosterPage';
+import MoneyDisplay from './Screens/MoneyDisplay.js';
+
 
 const Tab = createBottomTabNavigator();
-
-const MoneyDisplay = () => {
-  const [userMoney, setUserMoney] = useState(0);
-
-  useEffect(() => {
-    const fetchMoney = async () => {
-      const money = await getUserMoney();
-      setUserMoney(money);
-    };
-
-    fetchMoney();
-  }, []);
-
-  return <Text style={{ fontSize: 18, fontWeight: 'bold' }}>💰 ${userMoney}</Text>; // $ for currency symbol
-};
 
 const App = () => {
   useEffect(() => {
